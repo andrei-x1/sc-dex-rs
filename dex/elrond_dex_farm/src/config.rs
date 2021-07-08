@@ -10,7 +10,7 @@ pub enum State {
 }
 
 #[elrond_wasm_derive::module]
-pub trait ConfigModule {
+pub trait ConfigModule: token_supply::TokenSupplyModule {
     #[inline]
     fn is_active(&self) -> bool {
         let state = self.state().get();
@@ -28,6 +28,7 @@ pub trait ConfigModule {
     #[endpoint]
     fn set_penalty_percent(&self, percent: u8) -> SCResult<()> {
         self.require_permissions()?;
+        require!(percent < 100, "Percent cannot exceed 100");
         self.penalty_percent().set(&percent);
         Ok(())
     }
@@ -35,6 +36,7 @@ pub trait ConfigModule {
     #[endpoint]
     fn set_locked_rewards_apr_multiplier(&self, muliplier: u8) -> SCResult<()> {
         self.require_permissions()?;
+        require!(muliplier > 0, "Multiplier cannot be zero");
         self.locked_rewards_apr_multiplier().set(&muliplier);
         Ok(())
     }
@@ -51,6 +53,15 @@ pub trait ConfigModule {
         self.require_permissions()?;
         self.transfer_exec_gas_limit().set(&gas_limit);
         Ok(())
+    }
+
+    #[view(getFarmTokenSupply)]
+    fn get_farm_token_supply(&self) -> Self::BigUint {
+        let result = self.get_total_supply(&self.farm_token_id().get());
+        match result {
+            SCResult::Ok(amount) => amount,
+            SCResult::Err(message) => self.send().signal_error(message.as_bytes()),
+        }
     }
 
     #[storage_mapper("transfer_exec_gas_limit")]
@@ -113,10 +124,6 @@ pub trait ConfigModule {
 
     #[storage_mapper("farm_token_nonce")]
     fn farm_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
-
-    #[view(getFarmTokenSupply)]
-    #[storage_mapper("farm_token_supply")]
-    fn farm_token_supply(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
 
     #[storage_mapper("division_safety_constant")]
     fn division_safety_constant(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
