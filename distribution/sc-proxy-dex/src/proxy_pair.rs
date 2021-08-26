@@ -101,9 +101,11 @@ pub trait ProxyPairModule:
         let result = self.actual_add_liquidity(
             &pair_address,
             &first_token_id,
+            first_token_nonce,
             &first_token_amount_desired,
             &first_token_amount_min,
             &second_token_id,
+            second_token_nonce,
             &second_token_amount_desired,
             &second_token_amount_min,
         );
@@ -312,20 +314,36 @@ pub trait ProxyPairModule:
         &self,
         pair_address: &Address,
         first_token_id: &TokenIdentifier,
+        first_token_nonce: u64,
         first_token_amount_desired: &BigUint,
         first_token_amount_min: &BigUint,
         second_token_id: &TokenIdentifier,
+        _second_token_nonce: u64,
         second_token_amount_desired: &BigUint,
         second_token_amount_min: &BigUint,
     ) -> AddLiquidityResultType<Self::TypeManager> {
+        let asset_token_id = self.asset_token_id().get();
         let mut payments = Vec::new();
+        let first_token_to_send: &TokenIdentifier;
+        let second_token_to_send: &TokenIdentifier;
+
+        if first_token_nonce == 0 {
+            first_token_to_send = first_token_id;
+            self.mint_tokens(&asset_token_id, second_token_amount_desired);
+            second_token_to_send = &asset_token_id;
+        } else {
+            second_token_to_send = second_token_id;
+            self.mint_tokens(&asset_token_id, first_token_amount_desired);
+            first_token_to_send = &asset_token_id;
+        };
+
         payments.push(EsdtTokenPayment::from(
-            first_token_id.clone(),
+            first_token_to_send.clone(),
             0,
             first_token_amount_desired.clone(),
         ));
         payments.push(EsdtTokenPayment::from(
-            second_token_id.clone(),
+            second_token_to_send.clone(),
             0,
             second_token_amount_desired.clone(),
         ));
