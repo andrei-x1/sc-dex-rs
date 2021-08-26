@@ -313,92 +313,93 @@ pub trait Farm:
         require!(payment_token_id == farm_token_id, "Unknown farm token");
         let farm_attributes = self.get_farm_attributes(&payment_token_id, token_nonce)?;
 
-        let mut reward_token_id = self.reward_token_id().get();
-        self.generate_aggregated_rewards(&reward_token_id);
+        panic!("cev")
+        // let mut reward_token_id = self.reward_token_id().get();
+        // self.generate_aggregated_rewards(&reward_token_id);
 
-        let mut reward = self.calculate_reward(
-            &amount,
-            &self.reward_per_share().get(),
-            &farm_attributes.reward_per_share,
-        );
-        if reward > 0 {
-            self.decrease_reward_reserve(&reward)?;
-        }
+        // let mut reward = self.calculate_reward(
+        //     &amount,
+        //     &self.reward_per_share().get(),
+        //     &farm_attributes.reward_per_share,
+        // );
+        // if reward > 0 {
+        //     self.decrease_reward_reserve(&reward)?;
+        // }
 
-        let new_initial_farming_amount = self.rule_of_three_non_zero_result(
-            &amount,
-            &farm_attributes.current_farm_amount,
-            &farm_attributes.initial_farming_amount,
-        )?;
-        let new_compound_reward_amount = self.rule_of_three(
-            &amount,
-            &farm_attributes.current_farm_amount,
-            &farm_attributes.compounded_reward,
-        );
+        // let new_initial_farming_amount = self.rule_of_three_non_zero_result(
+        //     &amount,
+        //     &farm_attributes.current_farm_amount,
+        //     &farm_attributes.initial_farming_amount,
+        // )?;
+        // let new_compound_reward_amount = self.rule_of_three(
+        //     &amount,
+        //     &farm_attributes.current_farm_amount,
+        //     &farm_attributes.compounded_reward,
+        // );
 
-        let new_attributes = FarmTokenAttributes {
-            reward_per_share: self.reward_per_share().get(),
-            entering_epoch: self.blockchain().get_block_epoch(),
-            original_entering_epoch: farm_attributes.original_entering_epoch,
-            apr_multiplier: farm_attributes.apr_multiplier,
-            with_locked_rewards: farm_attributes.with_locked_rewards,
-            initial_farming_amount: new_initial_farming_amount,
-            compounded_reward: new_compound_reward_amount,
-            current_farm_amount: amount.clone(),
-        };
+        // let new_attributes = FarmTokenAttributes {
+        //     reward_per_share: self.reward_per_share().get(),
+        //     entering_epoch: self.blockchain().get_block_epoch(),
+        //     original_entering_epoch: farm_attributes.original_entering_epoch,
+        //     apr_multiplier: farm_attributes.apr_multiplier,
+        //     with_locked_rewards: farm_attributes.with_locked_rewards,
+        //     initial_farming_amount: new_initial_farming_amount,
+        //     compounded_reward: new_compound_reward_amount,
+        //     current_farm_amount: amount.clone(),
+        // };
 
-        let caller = self.blockchain().get_caller();
-        self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
-        let farm_amount = amount.clone();
-        let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
-            &farm_amount,
-            &farm_token_id,
-            &new_attributes,
-            &caller,
-        )?;
-        self.send_nft_tokens(
-            &farm_token_id,
-            new_farm_token.token_amount.token_nonce,
-            &new_farm_token.token_amount.amount,
-            &caller,
-            &opt_accept_funds_func,
-        )?;
+        // let caller = self.blockchain().get_caller();
+        // self.burn_farm_tokens(&payment_token_id, token_nonce, &amount)?;
+        // let farm_amount = amount.clone();
+        // let (new_farm_token, created_with_merge) = self.create_farm_tokens_by_merging(
+        //     &farm_amount,
+        //     &farm_token_id,
+        //     &new_attributes,
+        //     &caller,
+        // )?;
+        // self.send_nft_tokens(
+        //     &farm_token_id,
+        //     new_farm_token.token_amount.token_nonce,
+        //     &new_farm_token.token_amount.amount,
+        //     &caller,
+        //     &opt_accept_funds_func,
+        // )?;
 
-        // Send rewards
-        let mut reward_nonce = 0u64;
-        self.send_rewards(
-            &mut reward_token_id,
-            &mut reward_nonce,
-            &mut reward,
-            &caller,
-            farm_attributes.with_locked_rewards,
-            farm_attributes.original_entering_epoch,
-            &opt_accept_funds_func,
-        )?;
+        // // Send rewards
+        // let mut reward_nonce = 0u64;
+        // self.send_rewards(
+        //     &mut reward_token_id,
+        //     &mut reward_nonce,
+        //     &mut reward,
+        //     &caller,
+        //     farm_attributes.with_locked_rewards,
+        //     farm_attributes.original_entering_epoch,
+        //     &opt_accept_funds_func,
+        // )?;
 
-        let old_farm_token_amount = GenericTokenAmountPair {
-            token_id: farm_token_id,
-            token_nonce,
-            amount,
-        };
-        let reward_token_amount = GenericTokenAmountPair {
-            token_id: reward_token_id,
-            token_nonce: reward_nonce,
-            amount: reward,
-        };
+        // let old_farm_token_amount = GenericTokenAmountPair {
+        //     token_id: farm_token_id,
+        //     token_nonce,
+        //     amount,
+        // };
+        // let reward_token_amount = GenericTokenAmountPair {
+        //     token_id: reward_token_id,
+        //     token_nonce: reward_nonce,
+        //     amount: reward,
+        // };
 
-        self.emit_claim_rewards_event(
-            caller,
-            old_farm_token_amount,
-            new_farm_token.token_amount.clone(),
-            self.get_farm_token_supply(),
-            reward_token_amount.clone(),
-            self.reward_reserve().get(),
-            farm_attributes,
-            new_farm_token.attributes,
-            created_with_merge,
-        );
-        Ok((new_farm_token.token_amount, reward_token_amount).into())
+        // self.emit_claim_rewards_event(
+        //     caller,
+        //     old_farm_token_amount,
+        //     new_farm_token.token_amount.clone(),
+        //     self.get_farm_token_supply(),
+        //     reward_token_amount.clone(),
+        //     self.reward_reserve().get(),
+        //     farm_attributes,
+        //     new_farm_token.attributes,
+        //     created_with_merge,
+        // );
+        // Ok((new_farm_token.token_amount, reward_token_amount).into())
     }
 
     #[payable("*")]

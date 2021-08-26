@@ -86,111 +86,66 @@ pub trait Pair:
     }
 
     #[payable("*")]
-    #[endpoint(acceptEsdtPayment)]
-    fn accept_esdt_payment(
-        &self,
-        #[payment_token] token: TokenIdentifier,
-        #[payment_amount] payment: BigUint,
-    ) -> SCResult<()> {
-        require!(self.is_active(), "Not active");
-        require!(
-            self.call_value().esdt_token_nonce() == 0,
-            "Only fungible tokens are accepted in liquidity pools"
-        );
-        require!(payment > 0, "Funds transfer must be a positive number");
-        let first_token_id = self.first_token_id().get();
-        let second_token_id = self.second_token_id().get();
-        require!(
-            token == first_token_id || token == second_token_id,
-            "Invalid token"
-        );
-
-        let caller = self.blockchain().get_caller();
-        let mut temporary_funds = self.temporary_funds(&caller, &token).get();
-        temporary_funds += payment;
-        self.temporary_funds(&caller, &token).set(&temporary_funds);
-
-        Ok(())
-    }
-
     #[endpoint(addLiquidity)]
     fn add_liquidity(
         &self,
-        first_token_amount_desired: BigUint,
-        second_token_amount_desired: BigUint,
         first_token_amount_min: BigUint,
         second_token_amount_min: BigUint,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
     ) -> SCResult<AddLiquidityResultType<Self::TypeManager>> {
         require!(self.is_active(), "Not active");
         require!(
+            !self.lp_token_identifier().is_empty(),
+            "LP token not issued"
+        );
+
+        let payments = self.call_value().get_all_esdt_transfers();
+        require!(payments.len() == 2, "Bad payments len");
+
+        let expected_first_token_id = self.first_token_id().get();
+        require!(
+            payments[0].token_name == expected_first_token_id,
+            "Bad first token id"
+        );
+        let first_token_amount_desired = payments[0].amount.clone();
+        require!(
             first_token_amount_desired > 0,
             "Insufficient first token funds sent"
-        );
-        require!(
-            second_token_amount_desired > 0,
-            "Insufficient second token funds sent"
         );
         require!(
             first_token_amount_desired >= first_token_amount_min,
             "Input first token desired amount is lower than minimul"
         );
+
+        let expected_second_token_id = self.second_token_id().get();
+        require!(
+            payments[1].token_name == expected_second_token_id,
+            "Bad second token id"
+        );
+        let second_token_amount_desired = payments[1].amount.clone();
+        require!(
+            second_token_amount_desired > 0,
+            "Insufficient second token funds sent"
+        );
         require!(
             second_token_amount_desired >= second_token_amount_min,
             "Input second token desired amount is lower than minimul"
         );
-        require!(
-            !self.lp_token_identifier().is_empty(),
-            "LP token not issued"
-        );
-
-        let caller = self.blockchain().get_caller();
-        let expected_first_token_id = self.first_token_id().get();
-        let expected_second_token_id = self.second_token_id().get();
-        let temporary_first_token_amount = self
-            .temporary_funds(&caller, &expected_first_token_id)
-            .get();
-        let temporary_second_token_amount = self
-            .temporary_funds(&caller, &expected_second_token_id)
-            .get();
-
-        require!(
-            temporary_first_token_amount > 0,
-            "No available first token funds"
-        );
-        require!(
-            temporary_second_token_amount > 0,
-            "No available second token funds"
-        );
-        require!(
-            first_token_amount_desired <= temporary_first_token_amount,
-            "Insufficient first token funds to add"
-        );
-        require!(
-            second_token_amount_desired <= temporary_second_token_amount,
-            "Insufficient second token funds to add"
-        );
 
         let old_k = self.calculate_k_for_reserves();
         let (first_token_amount, second_token_amount) = self.calculate_optimal_amounts(
-            first_token_amount_desired,
-            second_token_amount_desired,
-            first_token_amount_min,
-            second_token_amount_min,
+            &first_token_amount_desired,
+            &second_token_amount_desired,
+            &first_token_amount_min,
+            &second_token_amount_min,
         )?;
 
         let liquidity =
             self.pool_add_liquidity(first_token_amount.clone(), second_token_amount.clone())?;
 
         let caller = self.blockchain().get_caller();
-        let temporary_first_token_unused =
-            temporary_first_token_amount - first_token_amount.clone();
-        let temporary_second_token_unused =
-            temporary_second_token_amount - second_token_amount.clone();
-        self.temporary_funds(&caller, &expected_first_token_id)
-            .clear();
-        self.temporary_funds(&caller, &expected_second_token_id)
-            .clear();
+        let first_token_unused = &first_token_amount_desired - &first_token_amount;
+        let second_token_unused = &second_token_amount_desired - &second_token_amount;
 
         // Once liquidity has been added, the new K should always be greater than the old K.
         let new_k = self.calculate_k_for_reserves();
@@ -199,16 +154,19 @@ pub trait Pair:
         let lp_token_id = self.lp_token_identifier().get();
         self.mint_tokens(&lp_token_id, &liquidity);
 
-        self.send_tokens(&lp_token_id, &liquidity, &caller, &opt_accept_funds_func)?;
-        self.send_tokens(
-            &expected_first_token_id,
-            &temporary_first_token_unused,
-            &caller,
-            &opt_accept_funds_func,
-        )?;
-        self.send_tokens(
-            &expected_second_token_id,
-            &temporary_second_token_unused,
+        let lp_payment = EsdtTokenPayment::from(lp_token_id.clone(), 0, liquidity.clone());
+        let first_unused_payment = EsdtTokenPayment::from(
+            expected_first_token_id.clone(),
+            0,
+            first_token_unused.clone(),
+        );
+        let second_unused_payment = EsdtTokenPayment::from(
+            expected_second_token_id.clone(),
+            0,
+            second_token_unused.clone(),
+        );
+        self.send_multiple_tokens_compact(
+            &[lp_payment, first_unused_payment, second_unused_payment],
             &caller,
             &opt_accept_funds_func,
         )?;
@@ -244,32 +202,6 @@ pub trait Pair:
         Ok((lp_token_amount, first_token_amount, second_token_amount).into())
     }
 
-    fn reclaim_temporary_token(
-        &self,
-        caller: &Address,
-        token: &TokenIdentifier,
-        opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
-        let amount = self.temporary_funds(caller, token).get();
-        self.temporary_funds(caller, token).clear();
-        self.send_tokens(token, &amount, caller, opt_accept_funds_func)?;
-        Ok(())
-    }
-
-    #[endpoint(reclaimTemporaryFunds)]
-    fn reclaim_temporary_funds(
-        &self,
-        #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<()> {
-        let caller = self.blockchain().get_caller();
-        let first_token_id = self.first_token_id().get();
-        let second_token_id = self.second_token_id().get();
-        self.reclaim_temporary_token(&caller, &first_token_id, &opt_accept_funds_func)?;
-        self.reclaim_temporary_token(&caller, &second_token_id, &opt_accept_funds_func)?;
-
-        Ok(())
-    }
-
     #[payable("*")]
     #[endpoint(removeLiquidity)]
     fn remove_liquidity(
@@ -303,19 +235,15 @@ pub trait Pair:
         let new_k = self.calculate_k_for_reserves();
         self.validate_k_invariant_strict(&new_k, &old_k)?;
 
-        self.send_tokens(
-            &first_token_id,
-            &first_token_amount,
+        let first_token_payment =
+            EsdtTokenPayment::from(first_token_id.clone(), 0, first_token_amount.clone());
+        let second_token_payment =
+            EsdtTokenPayment::from(second_token_id.clone(), 0, second_token_amount.clone());
+        self.send_multiple_tokens_compact(
+            &[first_token_payment, second_token_payment],
             &caller,
             &opt_accept_funds_func,
         )?;
-        self.send_tokens(
-            &second_token_id,
-            &second_token_amount,
-            &caller,
-            &opt_accept_funds_func,
-        )?;
-
         self.burn_tokens(&token_id, &liquidity);
 
         let lp_token_amount = FftTokenAmountPair {
@@ -610,8 +538,13 @@ pub trait Pair:
             self.send_fee(&token_in, &fee_amount);
         }
 
-        self.send_tokens(&token_out, &amount_out, &caller, &opt_accept_funds_func)?;
-        self.send_tokens(&token_in, &residuum, &caller, &opt_accept_funds_func)?;
+        let token_out_payment = EsdtTokenPayment::from(token_out.clone(), 0, amount_out.clone());
+        let residuum_payment = EsdtTokenPayment::from(token_in.clone(), 0, amount_out.clone());
+        self.send_multiple_tokens_compact(
+            &[token_out_payment, residuum_payment],
+            &caller,
+            &opt_accept_funds_func,
+        )?;
 
         let token_amount_in = FftTokenAmountPair {
             token_id: token_in.clone(),
@@ -808,12 +741,4 @@ pub trait Pair:
     fn can_swap(&self) -> bool {
         self.state().get() == State::Active
     }
-
-    #[view(getTemporaryFunds)]
-    #[storage_mapper("funds")]
-    fn temporary_funds(
-        &self,
-        caller: &Address,
-        token_id: &TokenIdentifier,
-    ) -> SingleValueMapper<Self::Storage, BigUint>;
 }

@@ -104,16 +104,19 @@ pub trait LiquidityPoolModule:
 
     fn calculate_optimal_amounts(
         &self,
-        first_token_amount_desired: BigUint,
-        second_token_amount_desired: BigUint,
-        first_token_amount_min: BigUint,
-        second_token_amount_min: BigUint,
+        first_token_amount_desired: &BigUint,
+        second_token_amount_desired: &BigUint,
+        first_token_amount_min: &BigUint,
+        second_token_amount_min: &BigUint,
     ) -> SCResult<(BigUint, BigUint)> {
         let first_token_reserve = self.pair_reserve(&self.first_token_id().get()).get();
         let second_token_reserve = self.pair_reserve(&self.second_token_id().get()).get();
 
         if first_token_reserve == 0 && second_token_reserve == 0 {
-            return Ok((first_token_amount_desired, second_token_amount_desired));
+            return Ok((
+                first_token_amount_desired.clone(),
+                second_token_amount_desired.clone(),
+            ));
         }
 
         let second_token_amount_optimal = self.quote(
@@ -121,12 +124,15 @@ pub trait LiquidityPoolModule:
             &first_token_reserve,
             &second_token_reserve,
         );
-        if second_token_amount_optimal <= second_token_amount_desired {
+        if &second_token_amount_optimal <= second_token_amount_desired {
             require!(
-                second_token_amount_optimal >= second_token_amount_min,
+                &second_token_amount_optimal >= second_token_amount_min,
                 "Insufficient second token computed amount"
             );
-            Ok((first_token_amount_desired, second_token_amount_optimal))
+            Ok((
+                first_token_amount_desired.clone(),
+                second_token_amount_optimal,
+            ))
         } else {
             let first_token_amount_optimal = self.quote(
                 &second_token_amount_desired,
@@ -134,14 +140,17 @@ pub trait LiquidityPoolModule:
                 &first_token_reserve,
             );
             require!(
-                first_token_amount_optimal <= first_token_amount_desired,
+                &first_token_amount_optimal <= first_token_amount_desired,
                 "Optimal amount greater than desired amount"
             );
             require!(
-                first_token_amount_optimal >= first_token_amount_min,
+                &first_token_amount_optimal >= first_token_amount_min,
                 "Insufficient first token computed amount"
             );
-            Ok((first_token_amount_optimal, second_token_amount_desired))
+            Ok((
+                first_token_amount_optimal,
+                second_token_amount_desired.clone(),
+            ))
         }
     }
 

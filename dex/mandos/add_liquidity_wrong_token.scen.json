@@ -1,5 +1,5 @@
 {
-	"name": "add liquidity",
+	"name": "accept esdt payment",
 	"steps": [
 		{
 			"step": "externalSteps",
@@ -19,7 +19,7 @@
 						"value": "2,000,000,000"
 					},
 					{
-						"tokenIdentifier": "str:ALC-abcdef",
+						"tokenIdentifier": "str:BLC-abcdef",
 						"value": "2,000,000,000"
 					}
 				],
@@ -31,13 +31,9 @@
 				"gasPrice": "0"
 			},
 			"expect": {
-				"out": [
-					"*",
-					"*",
-					"*"
-				],
-				"status": "0",
-				"message": "",
+				"out": [],
+				"status": "4",
+				"message": "*",
 				"gas": "*",
 				"refund": "*"
 			}
