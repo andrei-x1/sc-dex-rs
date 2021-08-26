@@ -10,7 +10,7 @@ pub trait TokenSendModule {
     fn send_fft_tokens(
         &self,
         token: &TokenIdentifier,
-        amount: &Self::BigUint,
+        amount: &BigUint,
         destination: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {
@@ -39,7 +39,7 @@ pub trait TokenSendModule {
         &self,
         token: &TokenIdentifier,
         nonce: Nonce,
-        amount: &Self::BigUint,
+        amount: &BigUint,
         destination: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
     ) -> SCResult<()> {

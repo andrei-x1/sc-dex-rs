@@ -67,7 +67,7 @@ pub trait ProxyDexImpl:
         &self,
         token_display_name: BoxedBytes,
         token_ticker: BoxedBytes,
-        #[payment_amount] issue_cost: Self::BigUint,
+        #[payment_amount] issue_cost: BigUint,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         only_owner!(self, "Permission denied");
         require!(self.wrapped_lp_token_id().is_empty(), "SFT already issued");
@@ -85,7 +85,7 @@ pub trait ProxyDexImpl:
         &self,
         token_display_name: BoxedBytes,
         token_ticker: BoxedBytes,
-        #[payment_amount] issue_cost: Self::BigUint,
+        #[payment_amount] issue_cost: BigUint,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         only_owner!(self, "Permission denied");
         require!(
@@ -104,7 +104,7 @@ pub trait ProxyDexImpl:
         &self,
         token_display_name: BoxedBytes,
         token_ticker: BoxedBytes,
-        issue_cost: Self::BigUint,
+        issue_cost: BigUint,
         request_type: IssueRequestType,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         Ok(ESDTSystemSmartContractProxy::new_proxy_obj(self.send())

@@ -34,13 +34,14 @@ path = "../common/modules/token_merge"
 [dependencies.elrond-wasm]
 version = "0.18"
 features = ["derive"]
-
-[dependencies.elrond-wasm-derive]
-version = "0.18"
+path = "../../elrond-wasm-rs/elrond-wasm"
 
 [dependencies.elrond-wasm-node]
 optional = true
 version = "0.18"
+path = "../../elrond-wasm-rs/elrond-wasm-node"
+
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.18"
+path = "../../elrond-wasm-rs/elrond-wasm-debug"

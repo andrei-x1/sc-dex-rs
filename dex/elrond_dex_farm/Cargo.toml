@@ -31,17 +31,17 @@ path = "../../common/modules/token_merge"
 
 [dependencies.elrond-wasm]
 version = "0.18"
+path = "../../../elrond-wasm-rs/elrond-wasm"
 features = ["derive"]
-
-[dependencies.elrond-wasm-derive]
-version = "0.18"
 
 [dependencies.elrond-wasm-node]
 version = "0.18"
+path = "../../../elrond-wasm-rs/elrond-wasm-node"
 optional = true
 
 [dev-dependencies.elrond-wasm-debug]
 version = "0.18"
+path = "../../../elrond-wasm-rs/elrond-wasm-debug"
 
 [dependencies.sc-locked-asset-factory]
 path = "../../sc-locked-asset-factory"

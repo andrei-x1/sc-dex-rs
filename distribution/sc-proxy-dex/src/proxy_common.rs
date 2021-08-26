@@ -22,7 +22,7 @@ pub trait ProxyCommonModule {
         to: &Address,
         token_id: &TokenIdentifier,
         nonce: Nonce,
-        amount: &Self::BigUint,
+        amount: &BigUint,
     ) {
         if amount > &0 {
             self.send().direct(to, token_id, nonce, amount, &[]);
@@ -45,14 +45,15 @@ pub trait ProxyCommonModule {
         &self,
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
-    ) -> SCResult<WrappedLpTokenAttributes<Self::BigUint>> {
+    ) -> SCResult<WrappedLpTokenAttributes<Self::TypeManager>> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
             token_nonce,
         );
 
-        let attributes = token_info.decode_attributes::<WrappedLpTokenAttributes<Self::BigUint>>();
+        let attributes =
+            token_info.decode_attributes::<WrappedLpTokenAttributes<Self::TypeManager>>();
         match attributes {
             Result::Ok(decoded_obj) => Ok(decoded_obj),
             Result::Err(_) => {
@@ -65,7 +66,7 @@ pub trait ProxyCommonModule {
         &self,
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
-    ) -> SCResult<WrappedFarmTokenAttributes<Self::BigUint>> {
+    ) -> SCResult<WrappedFarmTokenAttributes<Self::TypeManager>> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
@@ -73,7 +74,7 @@ pub trait ProxyCommonModule {
         );
 
         let attributes =
-            token_info.decode_attributes::<WrappedFarmTokenAttributes<Self::BigUint>>();
+            token_info.decode_attributes::<WrappedFarmTokenAttributes<Self::TypeManager>>();
         match attributes {
             Result::Ok(decoded_obj) => Ok(decoded_obj),
             Result::Err(_) => {
@@ -85,7 +86,7 @@ pub trait ProxyCommonModule {
     #[storage_mapper("current_tx_accepted_funds")]
     fn current_tx_accepted_funds(
         &self,
-    ) -> SafeMapMapper<Self::Storage, (TokenIdentifier, Nonce), Self::BigUint>;
+    ) -> SafeMapMapper<Self::Storage, (TokenIdentifier, Nonce), BigUint>;
 
     #[view(getAssetTokenId)]
     #[storage_mapper("asset_token_id")]

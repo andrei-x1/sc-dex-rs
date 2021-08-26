@@ -19,7 +19,7 @@ mod farm_proxy {
         fn accept_fee(
             &self,
             #[payment_token] token_in: TokenIdentifier,
-            #[payment_amount] amount: Self::BigUint,
+            #[payment_amount] amount: BigUint,
         );
     }
 }
@@ -108,13 +108,13 @@ pub trait FeeModule:
         Ok(())
     }
 
-    fn reinject(&self, token: &TokenIdentifier, amount: &Self::BigUint) {
+    fn reinject(&self, token: &TokenIdentifier, amount: &BigUint) {
         let mut reserve = self.pair_reserve(token).get();
         reserve += amount;
         self.pair_reserve(token).set(&reserve);
     }
 
-    fn send_fee(&self, fee_token: &TokenIdentifier, fee_amount: &Self::BigUint) {
+    fn send_fee(&self, fee_token: &TokenIdentifier, fee_amount: &BigUint) {
         if fee_amount == &0 {
             return;
         }
@@ -125,7 +125,7 @@ pub trait FeeModule:
             return;
         }
 
-        let fee_slice = fee_amount / &slices.into();
+        let fee_slice = fee_amount / slices;
         if fee_slice == 0 {
             self.reinject(fee_token, fee_amount);
             return;
@@ -145,7 +145,7 @@ pub trait FeeModule:
             );
         }
 
-        let rounding_error = fee_amount - &(fee_slice * slices.into());
+        let rounding_error = fee_amount - &(fee_slice * slices);
         if rounding_error > 0 {
             self.reinject(fee_token, &rounding_error);
         }
@@ -154,7 +154,7 @@ pub trait FeeModule:
     fn send_fee_slice(
         &self,
         fee_token: &TokenIdentifier,
-        fee_slice: &Self::BigUint,
+        fee_slice: &BigUint,
         fee_address: &Address,
         requested_fee_token: &TokenIdentifier,
         first_token_id: &TokenIdentifier,
@@ -274,7 +274,7 @@ pub trait FeeModule:
     fn extern_swap_and_forward(
         &self,
         available_token: &TokenIdentifier,
-        available_amount: &Self::BigUint,
+        available_amount: &BigUint,
         requested_token: &TokenIdentifier,
         destination_address: &Address,
     ) -> bool {
@@ -301,7 +301,7 @@ pub trait FeeModule:
     fn send_fee_or_burn_on_zero_address(
         &self,
         token: &TokenIdentifier,
-        amount: &Self::BigUint,
+        amount: &BigUint,
         destination: &Address,
     ) {
         if amount > &0 {

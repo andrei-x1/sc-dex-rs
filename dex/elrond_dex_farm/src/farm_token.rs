@@ -6,9 +6,9 @@ use common_structs::{FarmTokenAttributes, GenericTokenAmountPair, Nonce};
 use super::config;
 
 #[derive(Clone)]
-pub struct FarmToken<BigUint: BigUintApi> {
-    pub token_amount: GenericTokenAmountPair<BigUint>,
-    pub attributes: FarmTokenAttributes<BigUint>,
+pub struct FarmToken<M: ManagedTypeApi> {
+    pub token_amount: GenericTokenAmountPair<M>,
+    pub attributes: FarmTokenAttributes<M>,
 }
 
 #[elrond_wasm::module]
@@ -22,7 +22,7 @@ pub trait FarmTokenModule:
     #[endpoint(issueFarmToken)]
     fn issue_farm_token(
         &self,
-        #[payment_amount] issue_cost: Self::BigUint,
+        #[payment_amount] issue_cost: BigUint,
         token_display_name: BoxedBytes,
         token_ticker: BoxedBytes,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
@@ -35,7 +35,7 @@ pub trait FarmTokenModule:
 
     fn issue_token(
         &self,
-        issue_cost: Self::BigUint,
+        issue_cost: BigUint,
         token_display_name: BoxedBytes,
         token_ticker: BoxedBytes,
     ) -> AsyncCall<Self::SendApi> {
@@ -126,9 +126,9 @@ pub trait FarmTokenModule:
     fn decode_attributes(
         &self,
         attributes_raw: &BoxedBytes,
-    ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
+    ) -> SCResult<FarmTokenAttributes<Self::TypeManager>> {
         let attributes =
-            <FarmTokenAttributes<Self::BigUint>>::top_decode(attributes_raw.as_slice());
+            <FarmTokenAttributes<Self::TypeManager>>::top_decode(attributes_raw.as_slice());
         match attributes {
             Result::Ok(decoded_obj) => Ok(decoded_obj),
             Result::Err(_) => {
@@ -141,14 +141,15 @@ pub trait FarmTokenModule:
         &self,
         token_id: &TokenIdentifier,
         token_nonce: u64,
-    ) -> SCResult<FarmTokenAttributes<Self::BigUint>> {
+    ) -> SCResult<FarmTokenAttributes<Self::TypeManager>> {
         let token_info = self.blockchain().get_esdt_token_data(
             &self.blockchain().get_sc_address(),
             token_id,
             token_nonce,
         );
 
-        let farm_attributes = token_info.decode_attributes::<FarmTokenAttributes<Self::BigUint>>();
+        let farm_attributes =
+            token_info.decode_attributes::<FarmTokenAttributes<Self::TypeManager>>();
         match farm_attributes {
             Result::Ok(decoded_obj) => Ok(decoded_obj),
             Result::Err(_) => {
@@ -159,9 +160,9 @@ pub trait FarmTokenModule:
 
     fn create_farm_tokens(
         &self,
-        farm_amount: &Self::BigUint,
+        farm_amount: &BigUint,
         farm_token_id: &TokenIdentifier,
-        attributes: &FarmTokenAttributes<Self::BigUint>,
+        attributes: &FarmTokenAttributes<Self::TypeManager>,
     ) -> Nonce {
         self.nft_create_tokens(farm_token_id, farm_amount, attributes);
         self.increase_nonce()
@@ -171,7 +172,7 @@ pub trait FarmTokenModule:
         &self,
         farm_token_id: &TokenIdentifier,
         farm_token_nonce: Nonce,
-        amount: &Self::BigUint,
+        amount: &BigUint,
     ) -> SCResult<()> {
         let farm_amount = self.get_farm_token_supply();
         require!(&farm_amount >= amount, "Not enough supply");

@@ -16,19 +16,19 @@ use super::events;
 use super::proxy_common;
 use super::wrapped_lp_token_merge;
 
-type AddLiquidityResultType<BigUint> = MultiResult3<
-    FftTokenAmountPair<BigUint>,
-    FftTokenAmountPair<BigUint>,
-    FftTokenAmountPair<BigUint>,
+type AddLiquidityResultType<ManagedTypeApi> = MultiResult3<
+    FftTokenAmountPair<ManagedTypeApi>,
+    FftTokenAmountPair<ManagedTypeApi>,
+    FftTokenAmountPair<ManagedTypeApi>,
 >;
 
-type RemoveLiquidityResultType<BigUint> =
-    MultiResult2<FftTokenAmountPair<BigUint>, FftTokenAmountPair<BigUint>>;
+type RemoveLiquidityResultType<ManagedTypeApi> =
+    MultiResult2<FftTokenAmountPair<ManagedTypeApi>, FftTokenAmountPair<ManagedTypeApi>>;
 
 #[derive(Clone)]
-pub struct WrappedLpToken<BigUint: BigUintApi> {
-    pub token_amount: GenericTokenAmountPair<BigUint>,
-    pub attributes: WrappedLpTokenAttributes<BigUint>,
+pub struct WrappedLpToken<M: ManagedTypeApi> {
+    pub token_amount: GenericTokenAmountPair<M>,
+    pub attributes: WrappedLpTokenAttributes<M>,
 }
 
 #[elrond_wasm::module]
@@ -64,7 +64,7 @@ pub trait ProxyPairModule:
     fn accept_esdt_payment_proxy(
         &self,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] amount: Self::BigUint,
+        #[payment_amount] amount: BigUint,
         #[payment_nonce] token_nonce: Nonce,
         pair_address: Address,
     ) -> SCResult<()> {
@@ -101,11 +101,11 @@ pub trait ProxyPairModule:
         let first_token_amount = self
             .temporary_funds(&caller)
             .get(&(first_token_id.clone(), first_token_nonce))
-            .unwrap_or_else(|| 0u64.into());
+            .unwrap_or_else(|| self.types().big_uint_zero());
         let second_token_amount = self
             .temporary_funds(&caller)
             .get(&(second_token_id.clone(), second_token_nonce))
-            .unwrap_or_else(|| 0u64.into());
+            .unwrap_or_else(|| self.types().big_uint_zero());
         self.temporary_funds(&caller)
             .remove(&(first_token_id.clone(), first_token_nonce));
         self.temporary_funds(&caller)
@@ -131,12 +131,12 @@ pub trait ProxyPairModule:
         pair_address: Address,
         first_token_id: TokenIdentifier,
         first_token_nonce: Nonce,
-        first_token_amount_desired: Self::BigUint,
-        first_token_amount_min: Self::BigUint,
+        first_token_amount_desired: BigUint,
+        first_token_amount_min: BigUint,
         second_token_id: TokenIdentifier,
         second_token_nonce: Nonce,
-        second_token_amount_desired: Self::BigUint,
-        second_token_amount_min: Self::BigUint,
+        second_token_amount_desired: BigUint,
+        second_token_amount_min: BigUint,
     ) -> SCResult<()> {
         self.require_is_intermediated_pair(&pair_address)?;
         self.require_wrapped_lp_token_id_not_empty()?;
@@ -162,7 +162,7 @@ pub trait ProxyPairModule:
         let first_token_amount_temporary = self
             .temporary_funds(&caller)
             .get(&(first_token_id.clone(), first_token_nonce))
-            .unwrap_or_else(|| 0u64.into());
+            .unwrap_or_else(|| self.types().big_uint_zero());
         require!(
             first_token_amount_temporary >= first_token_amount_desired,
             "Not enough first temporary funds"
@@ -170,7 +170,7 @@ pub trait ProxyPairModule:
         let second_token_amount_temporary = self
             .temporary_funds(&caller)
             .get(&(second_token_id.clone(), second_token_nonce))
-            .unwrap_or_else(|| 0u64.into());
+            .unwrap_or_else(|| self.types().big_uint_zero());
         require!(
             second_token_amount_temporary >= second_token_amount_desired,
             "Not enough second temporary funds"
@@ -220,9 +220,9 @@ pub trait ProxyPairModule:
 
         //Recalculate temporary funds and burn unused
         let locked_asset_token_nonce: Nonce;
-        let consumed_locked_tokens: Self::BigUint;
+        let consumed_locked_tokens: BigUint;
         let asset_token_id = self.asset_token_id().get();
-        let unused_minted_assets: Self::BigUint;
+        let unused_minted_assets: BigUint;
         if first_token_used.token_id == asset_token_id {
             consumed_locked_tokens = first_token_used.amount.clone();
             unused_minted_assets = first_token_amount_desired - consumed_locked_tokens.clone();
@@ -306,11 +306,11 @@ pub trait ProxyPairModule:
     fn remove_liquidity_proxy(
         &self,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] amount: Self::BigUint,
+        #[payment_amount] amount: BigUint,
         #[payment_nonce] token_nonce: Nonce,
         pair_address: Address,
-        first_token_amount_min: Self::BigUint,
-        second_token_amount_min: Self::BigUint,
+        first_token_amount_min: BigUint,
+        second_token_amount_min: BigUint,
     ) -> SCResult<()> {
         self.require_is_intermediated_pair(&pair_address)?;
         self.require_wrapped_lp_token_id_not_empty()?;
@@ -339,8 +339,8 @@ pub trait ProxyPairModule:
             .into_tuple();
 
         let fungible_token_id: TokenIdentifier;
-        let fungible_token_amount: Self::BigUint;
-        let assets_received: Self::BigUint;
+        let fungible_token_amount: BigUint;
+        let assets_received: BigUint;
         let locked_assets_invested = self.rule_of_three_non_zero_result(
             &amount,
             &attributes.lp_token_total_amount,
@@ -418,11 +418,11 @@ pub trait ProxyPairModule:
     fn actual_add_liquidity(
         &self,
         pair_address: &Address,
-        first_token_amount_desired: &Self::BigUint,
-        first_token_amount_min: &Self::BigUint,
-        second_token_amount_desired: &Self::BigUint,
-        second_token_amount_min: &Self::BigUint,
-    ) -> AddLiquidityResultType<Self::BigUint> {
+        first_token_amount_desired: &BigUint,
+        first_token_amount_min: &BigUint,
+        second_token_amount_desired: &BigUint,
+        second_token_amount_min: &BigUint,
+    ) -> AddLiquidityResultType<Self::TypeManager> {
         self.pair_contract_proxy(pair_address.clone())
             .add_liquidity(
                 first_token_amount_desired.clone(),
@@ -438,10 +438,10 @@ pub trait ProxyPairModule:
         &self,
         pair_address: &Address,
         lp_token_id: &TokenIdentifier,
-        liquidity: &Self::BigUint,
-        first_token_amount_min: &Self::BigUint,
-        second_token_amount_min: &Self::BigUint,
-    ) -> RemoveLiquidityResultType<Self::BigUint> {
+        liquidity: &BigUint,
+        first_token_amount_min: &BigUint,
+        second_token_amount_min: &BigUint,
+    ) -> RemoveLiquidityResultType<Self::TypeManager> {
         self.pair_contract_proxy(pair_address.clone())
             .remove_liquidity(
                 lp_token_id.clone(),
@@ -462,11 +462,11 @@ pub trait ProxyPairModule:
     fn create_by_merging_and_send(
         &self,
         lp_token_id: &TokenIdentifier,
-        lp_token_amount: &Self::BigUint,
-        locked_tokens_consumed: &Self::BigUint,
+        lp_token_amount: &BigUint,
+        locked_tokens_consumed: &BigUint,
         locked_tokens_nonce: Nonce,
         caller: &Address,
-    ) -> SCResult<(WrappedLpToken<Self::BigUint>, bool)> {
+    ) -> SCResult<(WrappedLpToken<Self::TypeManager>, bool)> {
         self.merge_wrapped_lp_tokens_and_send(
             caller,
             Option::Some(WrappedLpToken {
@@ -491,7 +491,7 @@ pub trait ProxyPairModule:
         pair_address: &Address,
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
-        amount: &Self::BigUint,
+        amount: &BigUint,
     ) {
         let token_to_send: TokenIdentifier;
         if token_nonce == 0 {
@@ -511,12 +511,12 @@ pub trait ProxyPairModule:
         caller: &Address,
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
-        increase_amount: &Self::BigUint,
+        increase_amount: &BigUint,
     ) {
         let old_value = self
             .temporary_funds(caller)
             .get(&(token_id.clone(), token_nonce))
-            .unwrap_or_else(|| 0u64.into());
+            .unwrap_or_else(|| self.types().big_uint_zero());
         self.temporary_funds(caller).insert(
             (token_id.clone(), token_nonce),
             &old_value + increase_amount,
@@ -528,7 +528,7 @@ pub trait ProxyPairModule:
         caller: &Address,
         token_id: &TokenIdentifier,
         token_nonce: Nonce,
-        decrease_amount: &Self::BigUint,
+        decrease_amount: &BigUint,
     ) {
         let old_value = self
             .temporary_funds(caller)
@@ -563,7 +563,7 @@ pub trait ProxyPairModule:
     fn get_temporary_funds(
         &self,
         address: &Address,
-    ) -> MultiResultVec<GenericTokenAmountPair<Self::BigUint>> {
+    ) -> MultiResultVec<GenericTokenAmountPair<Self::TypeManager>> {
         MultiResultVec::from_iter(
             self.temporary_funds(address)
                 .iter()
@@ -576,7 +576,7 @@ pub trait ProxyPairModule:
                         amount,
                     }
                 })
-                .collect::<Vec<GenericTokenAmountPair<Self::BigUint>>>(),
+                .collect::<Vec<GenericTokenAmountPair<Self::TypeManager>>>(),
         )
     }
 
@@ -584,5 +584,5 @@ pub trait ProxyPairModule:
     fn temporary_funds(
         &self,
         user: &Address,
-    ) -> SafeMapMapper<Self::Storage, (TokenIdentifier, Nonce), Self::BigUint>;
+    ) -> SafeMapMapper<Self::Storage, (TokenIdentifier, Nonce), BigUint>;
 }

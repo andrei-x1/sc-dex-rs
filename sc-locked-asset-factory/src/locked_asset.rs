@@ -20,8 +20,8 @@ pub struct LockedAssetTokenAttributes {
 pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::TokenSendModule {
     fn create_and_send_locked_assets(
         &self,
-        amount: &Self::BigUint,
-        additional_amount_to_create: &Self::BigUint,
+        amount: &BigUint,
+        additional_amount_to_create: &BigUint,
         address: &Address,
         attributes: &LockedAssetTokenAttributes,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
@@ -45,7 +45,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
 
     fn add_quantity_and_send_locked_assets(
         &self,
-        amount: &Self::BigUint,
+        amount: &BigUint,
         sft_nonce: Nonce,
         address: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
@@ -58,7 +58,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
     fn create_tokens(
         &self,
         token: &TokenIdentifier,
-        amount: &Self::BigUint,
+        amount: &BigUint,
         attributes: &LockedAssetTokenAttributes,
     ) {
         self.nft_create_tokens(token, amount, attributes);
@@ -67,12 +67,12 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
 
     fn get_unlock_amount(
         &self,
-        amount: &Self::BigUint,
+        amount: &BigUint,
         current_epoch: Epoch,
         unlock_milestones: &[UnlockMilestone],
-    ) -> Self::BigUint {
-        amount * &(self.get_unlock_percent(current_epoch, unlock_milestones) as u64).into()
-            / PERCENTAGE_TOTAL.into()
+    ) -> BigUint {
+        amount * (self.get_unlock_percent(current_epoch, unlock_milestones) as u64)
+            / PERCENTAGE_TOTAL
     }
 
     fn get_unlock_percent(
@@ -182,7 +182,7 @@ pub trait LockedAssetModule: token_supply::TokenSupplyModule + token_send::Token
         Ok(())
     }
 
-    fn mint_and_send_assets(&self, dest: &Address, amount: &Self::BigUint) {
+    fn mint_and_send_assets(&self, dest: &Address, amount: &BigUint) {
         if amount > &0 {
             let asset_token_id = self.asset_token_id().get();
             self.mint_tokens(&asset_token_id, amount);

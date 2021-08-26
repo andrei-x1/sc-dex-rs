@@ -175,7 +175,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         pair_address: Address,
         lp_token_display_name: BoxedBytes,
         lp_token_ticker: BoxedBytes,
-        #[payment_amount] issue_cost: Self::BigUint,
+        #[payment_amount] issue_cost: BigUint,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         require!(self.is_active(), "Not active");
         let caller = self.blockchain().get_caller();
@@ -206,7 +206,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
                 issue_cost,
                 &lp_token_display_name,
                 &lp_token_ticker,
-                &LP_TOKEN_INITIAL_SUPPLY.into(),
+                &self.types().big_uint_from(LP_TOKEN_INITIAL_SUPPLY),
                 FungibleTokenProperties {
                     num_decimals: LP_TOKEN_DECIMALS,
                     can_freeze: true,
@@ -366,7 +366,7 @@ pub trait Router: factory::FactoryModule + events::EventsModule {
         caller: &Address,
         address: &Address,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] returned_tokens: Self::BigUint,
+        #[payment_amount] returned_tokens: BigUint,
         #[call_result] result: AsyncCallResult<()>,
     ) {
         match result {

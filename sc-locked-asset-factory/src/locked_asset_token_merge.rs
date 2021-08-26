@@ -8,8 +8,8 @@ use super::locked_asset::{LockedAssetTokenAttributes, UnlockSchedule, PERCENTAGE
 
 const MAX_MILESTONES_IN_SCHEDULE: usize = 64;
 
-pub struct LockedToken<BigUint: BigUintApi> {
-    pub token_amount: GenericTokenAmountPair<BigUint>,
+pub struct LockedToken<M: ManagedTypeApi> {
+    pub token_amount: GenericTokenAmountPair<M>,
     pub attributes: LockedAssetTokenAttributes,
 }
 
@@ -25,7 +25,7 @@ pub trait LockedAssetTokenMergeModule:
     fn merge_locked_asset_tokens(
         &self,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::TypeManager>> {
         let caller = self.blockchain().get_caller();
         let deposit = self.nft_deposit(&caller).get();
         require!(!deposit.is_empty(), "Empty deposit");
@@ -56,12 +56,12 @@ pub trait LockedAssetTokenMergeModule:
 
     fn get_merged_locked_asset_token_amount_and_attributes(
         &self,
-        deposit: &[GenericTokenAmountPair<Self::BigUint>],
-    ) -> SCResult<(Self::BigUint, LockedAssetTokenAttributes)> {
+        deposit: &[GenericTokenAmountPair<Self::TypeManager>],
+    ) -> SCResult<(BigUint, LockedAssetTokenAttributes)> {
         require!(!deposit.is_empty(), "Cannot merge with 0 tokens");
 
         let mut tokens = Vec::new();
-        let mut sum_amount = 0u64.into();
+        let mut sum_amount = self.types().big_uint_zero();
         let locked_asset_token_id = self.locked_asset_token_id().get();
 
         for entry in deposit.iter() {
@@ -91,7 +91,7 @@ pub trait LockedAssetTokenMergeModule:
 
     fn aggregated_unlock_schedule(
         &self,
-        tokens: &[LockedToken<Self::BigUint>],
+        tokens: &[LockedToken<Self::TypeManager>],
     ) -> SCResult<UnlockSchedule> {
         let mut unlock_epoch_amount = Vec::new();
         tokens.iter().for_each(|locked_token| {
@@ -104,8 +104,8 @@ pub trait LockedAssetTokenMergeModule:
                     unlock_epoch_amount.push((
                         milestone.unlock_epoch,
                         self.rule_of_three(
-                            &(milestone.unlock_percent as u64).into(),
-                            &(PERCENTAGE_TOTAL as u64).into(),
+                            &self.types().big_uint_from(milestone.unlock_percent as u64),
+                            &self.types().big_uint_from(PERCENTAGE_TOTAL as u64),
                             &locked_token.token_amount.amount,
                         ),
                     ))
@@ -113,9 +113,9 @@ pub trait LockedAssetTokenMergeModule:
         });
         unlock_epoch_amount.sort_by(|a, b| a.0.cmp(&b.0));
 
-        let mut sum = 0u64.into();
-        let default = (0u64, 0u64.into());
-        let mut unlock_epoch_amount_merged: Vec<(u64, Self::BigUint)> = Vec::new();
+        let mut sum = self.types().big_uint_zero();
+        let default = (0u64, self.types().big_uint_zero());
+        let mut unlock_epoch_amount_merged: Vec<(u64, BigUint)> = Vec::new();
         for elem in unlock_epoch_amount.iter() {
             let last = unlock_epoch_amount_merged.last().unwrap_or(&default);
 
@@ -137,8 +137,8 @@ pub trait LockedAssetTokenMergeModule:
 
         let mut new_unlock_milestones = Vec::new();
         unlock_epoch_amount_merged.iter().for_each(|x| {
-            if x.1 != Self::BigUint::zero() {
-                let unlock_percent = &(&x.1 * &100u64.into()) / &sum;
+            if x.1 != self.types().big_uint_zero() {
+                let unlock_percent = &(&x.1 * 100u64) / &sum;
 
                 if unlock_percent != 0 {
                     new_unlock_milestones.push(UnlockMilestone {

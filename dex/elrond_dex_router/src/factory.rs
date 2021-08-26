@@ -37,7 +37,7 @@ pub trait FactoryModule {
         require!(self.pair_code_ready().get(), "Pair code not ready");
         let code_metadata = CodeMetadata::UPGRADEABLE;
         let gas_left = self.blockchain().get_gas_left();
-        let amount = 0u64.into();
+        let amount = self.types().big_uint_zero();
         let mut arg_buffer = ArgBuffer::new();
         let code = self.pair_code().get();
         arg_buffer.push_argument_bytes(first_token_id.as_esdt_identifier());
@@ -89,7 +89,7 @@ pub trait FactoryModule {
         self.send().upgrade_contract(
             pair_address,
             self.blockchain().get_gas_left(),
-            &0u64.into(),
+            &self.types().big_uint_zero(),
             &self.pair_code().get(),
             CodeMetadata::DEFAULT,
             &arg_buffer,

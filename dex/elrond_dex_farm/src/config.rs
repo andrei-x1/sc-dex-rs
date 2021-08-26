@@ -89,7 +89,7 @@ pub trait ConfigModule:
     }
 
     #[view(getFarmTokenSupply)]
-    fn get_farm_token_supply(&self) -> Self::BigUint {
+    fn get_farm_token_supply(&self) -> BigUint {
         let result = self.get_total_supply(&self.farm_token_id().get());
         match result {
             SCResult::Ok(amount) => amount,
@@ -139,7 +139,7 @@ pub trait ConfigModule:
 
     #[view(getPerBlockRewardAmount)]
     #[storage_mapper("per_block_reward_amount")]
-    fn per_block_reward_amount(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn per_block_reward_amount(&self) -> SingleValueMapper<Self::Storage, BigUint>;
 
     #[storage_mapper("produce_rewards_enabled")]
     fn produce_rewards_enabled(&self) -> SingleValueMapper<Self::Storage, bool>;
@@ -156,7 +156,7 @@ pub trait ConfigModule:
     fn farm_token_nonce(&self) -> SingleValueMapper<Self::Storage, Nonce>;
 
     #[storage_mapper("division_safety_constant")]
-    fn division_safety_constant(&self) -> SingleValueMapper<Self::Storage, Self::BigUint>;
+    fn division_safety_constant(&self) -> SingleValueMapper<Self::Storage, BigUint>;
 
     #[view(getPairContractAddress)]
     #[storage_mapper("pair_contract_address")]

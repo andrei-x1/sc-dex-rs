@@ -13,7 +13,7 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment_nonce] payment_token_nonce: Nonce,
-        #[payment_amount] payment_amount: Self::BigUint,
+        #[payment_amount] payment_amount: BigUint,
     ) -> SCResult<()> {
         require!(payment_amount != 0, "Cannot deposit 0 tokens");
         require!(payment_token_nonce != 0, "Cannot deposit fungible tokens");
@@ -102,7 +102,7 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
     fn burn_deposit_tokens(
         &self,
         caller: &Address,
-        deposit: &[GenericTokenAmountPair<Self::BigUint>],
+        deposit: &[GenericTokenAmountPair<Self::TypeManager>],
     ) {
         deposit.iter().for_each(|entry| {
             self.nft_burn_tokens(&entry.token_id, entry.token_nonce, &entry.amount)
@@ -112,8 +112,8 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
 
     fn equal_token_type(
         &self,
-        first: &GenericTokenAmountPair<Self::BigUint>,
-        second: &GenericTokenAmountPair<Self::BigUint>,
+        first: &GenericTokenAmountPair<Self::TypeManager>,
+        second: &GenericTokenAmountPair<Self::TypeManager>,
     ) -> bool {
         first.token_id == second.token_id && first.token_nonce == second.token_nonce
     }
@@ -123,7 +123,7 @@ pub trait NftDepositModule: token_send::TokenSendModule + token_supply::TokenSup
     fn nft_deposit(
         &self,
         address: &Address,
-    ) -> SingleValueMapper<Self::Storage, Vec<GenericTokenAmountPair<Self::BigUint>>>;
+    ) -> SingleValueMapper<Self::Storage, Vec<GenericTokenAmountPair<Self::TypeManager>>>;
 
     #[view(getnftDepositMaxLen)]
     #[storage_mapper("nft_deposit_max_len")]

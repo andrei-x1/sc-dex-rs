@@ -15,17 +15,17 @@ use super::wrapped_lp_token_merge;
 
 use proxy_common::ACCEPT_PAY_FUNC_NAME;
 
-type EnterFarmResultType<BigUint> = GenericTokenAmountPair<BigUint>;
-type CompoundRewardsResultType<BigUint> = GenericTokenAmountPair<BigUint>;
-type ClaimRewardsResultType<BigUint> =
-    MultiResult2<GenericTokenAmountPair<BigUint>, GenericTokenAmountPair<BigUint>>;
-type ExitFarmResultType<BigUint> =
-    MultiResult2<FftTokenAmountPair<BigUint>, GenericTokenAmountPair<BigUint>>;
+type EnterFarmResultType<ManagedTypeApi> = GenericTokenAmountPair<ManagedTypeApi>;
+type CompoundRewardsResultType<ManagedTypeApi> = GenericTokenAmountPair<ManagedTypeApi>;
+type ClaimRewardsResultType<ManagedTypeApi> =
+    MultiResult2<GenericTokenAmountPair<ManagedTypeApi>, GenericTokenAmountPair<ManagedTypeApi>>;
+type ExitFarmResultType<ManagedTypeApi> =
+    MultiResult2<FftTokenAmountPair<ManagedTypeApi>, GenericTokenAmountPair<ManagedTypeApi>>;
 
 #[derive(Clone)]
-pub struct WrappedFarmToken<BigUint: BigUintApi> {
-    pub token_amount: GenericTokenAmountPair<BigUint>,
-    pub attributes: WrappedFarmTokenAttributes<BigUint>,
+pub struct WrappedFarmToken<M: ManagedTypeApi> {
+    pub token_amount: GenericTokenAmountPair<M>,
+    pub attributes: WrappedFarmTokenAttributes<M>,
 }
 
 #[elrond_wasm::module]
@@ -63,7 +63,7 @@ pub trait ProxyFarmModule:
     fn enter_farm_proxy_endpoint(
         &self,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] amount: Self::BigUint,
+        #[payment_amount] amount: BigUint,
         #[payment_nonce] nonce: Nonce,
         farm_address: Address,
     ) -> SCResult<()> {
@@ -75,7 +75,7 @@ pub trait ProxyFarmModule:
     fn enter_farm_and_lock_rewards_proxy_endpoint(
         &self,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] amount: Self::BigUint,
+        #[payment_amount] amount: BigUint,
         #[payment_nonce] nonce: Nonce,
         farm_address: Address,
     ) -> SCResult<()> {
@@ -86,7 +86,7 @@ pub trait ProxyFarmModule:
         &self,
         token_id: TokenIdentifier,
         token_nonce: Nonce,
-        amount: Self::BigUint,
+        amount: BigUint,
         farm_address: Address,
         with_lock_rewards: bool,
     ) -> SCResult<()> {
@@ -156,7 +156,7 @@ pub trait ProxyFarmModule:
     fn exit_farm_proxy(
         &self,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] amount: Self::BigUint,
+        #[payment_amount] amount: BigUint,
         #[payment_nonce] token_nonce: Nonce,
         farm_address: &Address,
     ) -> SCResult<()> {
@@ -230,7 +230,7 @@ pub trait ProxyFarmModule:
     fn claim_rewards_proxy(
         &self,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] amount: Self::BigUint,
+        #[payment_amount] amount: BigUint,
         #[payment_nonce] token_nonce: Nonce,
         farm_address: Address,
     ) -> SCResult<()> {
@@ -318,7 +318,7 @@ pub trait ProxyFarmModule:
         &self,
         #[payment_token] payment_token_id: TokenIdentifier,
         #[payment_nonce] payment_token_nonce: Nonce,
-        #[payment_amount] payment_amount: Self::BigUint,
+        #[payment_amount] payment_amount: BigUint,
         farm_address: Address,
     ) -> SCResult<()> {
         self.require_is_intermediated_farm(&farm_address)?;
@@ -395,11 +395,11 @@ pub trait ProxyFarmModule:
 
     fn create_wrapped_farm_tokens_by_merging_and_send(
         &self,
-        attributes: &WrappedFarmTokenAttributes<Self::BigUint>,
-        amount: &Self::BigUint,
+        attributes: &WrappedFarmTokenAttributes<Self::TypeManager>,
+        amount: &BigUint,
         farm_address: &Address,
         caller: &Address,
-    ) -> SCResult<(WrappedFarmToken<Self::BigUint>, bool)> {
+    ) -> SCResult<(WrappedFarmToken<Self::TypeManager>, bool)> {
         let wrapped_farm_token_id = self.wrapped_farm_token_id().get();
         self.merge_wrapped_farm_tokens_and_send(
             caller,
@@ -420,9 +420,9 @@ pub trait ProxyFarmModule:
         &self,
         farm_address: &Address,
         farming_token_id: &TokenIdentifier,
-        amount: &Self::BigUint,
+        amount: &BigUint,
         with_locked_rewards: bool,
-    ) -> EnterFarmResultType<Self::BigUint> {
+    ) -> EnterFarmResultType<Self::TypeManager> {
         let asset_token_id = self.asset_token_id().get();
         if farming_token_id == &asset_token_id {
             self.mint_tokens(&asset_token_id, amount);
@@ -451,8 +451,8 @@ pub trait ProxyFarmModule:
         farm_address: &Address,
         farm_token_id: &TokenIdentifier,
         farm_token_nonce: Nonce,
-        amount: &Self::BigUint,
-    ) -> ExitFarmResultType<Self::BigUint> {
+        amount: &BigUint,
+    ) -> ExitFarmResultType<Self::TypeManager> {
         self.farm_contract_proxy(farm_address.clone())
             .exit_farm(
                 farm_token_id.clone(),
@@ -468,8 +468,8 @@ pub trait ProxyFarmModule:
         farm_address: &Address,
         farm_token_id: &TokenIdentifier,
         farm_token_nonce: Nonce,
-        amount: &Self::BigUint,
-    ) -> ClaimRewardsResultType<Self::BigUint> {
+        amount: &BigUint,
+    ) -> ClaimRewardsResultType<Self::TypeManager> {
         self.farm_contract_proxy(farm_address.clone())
             .claim_rewards(
                 farm_token_id.clone(),
@@ -485,8 +485,8 @@ pub trait ProxyFarmModule:
         farm_address: &Address,
         farm_token_id: &TokenIdentifier,
         farm_token_nonce: Nonce,
-        amount: &Self::BigUint,
-    ) -> CompoundRewardsResultType<Self::BigUint> {
+        amount: &BigUint,
+    ) -> CompoundRewardsResultType<Self::TypeManager> {
         self.farm_contract_proxy(farm_address.clone())
             .compound_rewards(
                 farm_token_id.clone(),

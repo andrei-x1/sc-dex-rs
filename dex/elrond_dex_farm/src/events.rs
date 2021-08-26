@@ -6,14 +6,14 @@ use common_structs::{FftTokenAmountPair, GenericTokenAmountPair};
 use crate::FarmTokenAttributes;
 
 #[derive(TopEncode)]
-pub struct EnterFarmEvent<BigUint: BigUintApi> {
+pub struct EnterFarmEvent<M: ManagedTypeApi> {
     caller: Address,
-    farming_token_amount: FftTokenAmountPair<BigUint>,
-    farming_reserve: BigUint,
-    farm_token_amount: GenericTokenAmountPair<BigUint>,
-    farm_supply: BigUint,
-    reward_token_reserve: FftTokenAmountPair<BigUint>,
-    farm_attributes: FarmTokenAttributes<BigUint>,
+    farming_token_amount: FftTokenAmountPair<M>,
+    farming_reserve: BigUint<M>,
+    farm_token_amount: GenericTokenAmountPair<M>,
+    farm_supply: BigUint<M>,
+    reward_token_reserve: FftTokenAmountPair<M>,
+    farm_attributes: FarmTokenAttributes<M>,
     created_with_merge: bool,
     block: u64,
     epoch: u64,
@@ -21,30 +21,30 @@ pub struct EnterFarmEvent<BigUint: BigUintApi> {
 }
 
 #[derive(TopEncode)]
-pub struct ExitFarmEvent<BigUint: BigUintApi> {
+pub struct ExitFarmEvent<M: ManagedTypeApi> {
     caller: Address,
-    farming_token_amount: FftTokenAmountPair<BigUint>,
-    farming_reserve: BigUint,
-    farm_token_amount: GenericTokenAmountPair<BigUint>,
-    farm_supply: BigUint,
-    reward_token_amount: GenericTokenAmountPair<BigUint>,
-    reward_reserve: BigUint,
-    farm_attributes: FarmTokenAttributes<BigUint>,
+    farming_token_amount: FftTokenAmountPair<M>,
+    farming_reserve: BigUint<M>,
+    farm_token_amount: GenericTokenAmountPair<M>,
+    farm_supply: BigUint<M>,
+    reward_token_amount: GenericTokenAmountPair<M>,
+    reward_reserve: BigUint<M>,
+    farm_attributes: FarmTokenAttributes<M>,
     block: u64,
     epoch: u64,
     timestamp: u64,
 }
 
 #[derive(TopEncode)]
-pub struct ClaimRewardsEvent<BigUint: BigUintApi> {
+pub struct ClaimRewardsEvent<M: ManagedTypeApi> {
     caller: Address,
-    old_farm_token_amount: GenericTokenAmountPair<BigUint>,
-    new_farm_token_amount: GenericTokenAmountPair<BigUint>,
-    farm_supply: BigUint,
-    reward_token_amount: GenericTokenAmountPair<BigUint>,
-    reward_reserve: BigUint,
-    old_farm_attributes: FarmTokenAttributes<BigUint>,
-    new_farm_attributes: FarmTokenAttributes<BigUint>,
+    old_farm_token_amount: GenericTokenAmountPair<M>,
+    new_farm_token_amount: GenericTokenAmountPair<M>,
+    farm_supply: BigUint<M>,
+    reward_token_amount: GenericTokenAmountPair<M>,
+    reward_reserve: BigUint<M>,
+    old_farm_attributes: FarmTokenAttributes<M>,
+    new_farm_attributes: FarmTokenAttributes<M>,
     created_with_merge: bool,
     block: u64,
     epoch: u64,
@@ -52,15 +52,15 @@ pub struct ClaimRewardsEvent<BigUint: BigUintApi> {
 }
 
 #[derive(TopEncode)]
-pub struct CompoundRewardsEvent<BigUint: BigUintApi> {
+pub struct CompoundRewardsEvent<M: ManagedTypeApi> {
     caller: Address,
-    old_farm_token_amount: GenericTokenAmountPair<BigUint>,
-    new_farm_token_amount: GenericTokenAmountPair<BigUint>,
-    farm_supply: BigUint,
-    reward_token_amount: GenericTokenAmountPair<BigUint>,
-    reward_reserve: BigUint,
-    old_farm_attributes: FarmTokenAttributes<BigUint>,
-    new_farm_attributes: FarmTokenAttributes<BigUint>,
+    old_farm_token_amount: GenericTokenAmountPair<M>,
+    new_farm_token_amount: GenericTokenAmountPair<M>,
+    farm_supply: BigUint<M>,
+    reward_token_amount: GenericTokenAmountPair<M>,
+    reward_reserve: BigUint<M>,
+    old_farm_attributes: FarmTokenAttributes<M>,
+    new_farm_attributes: FarmTokenAttributes<M>,
     created_with_merge: bool,
     block: u64,
     epoch: u64,
@@ -72,12 +72,12 @@ pub trait EventsModule {
     fn emit_enter_farm_event(
         self,
         caller: Address,
-        farming_token_amount: FftTokenAmountPair<Self::BigUint>,
-        farming_reserve: Self::BigUint,
-        farm_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        farm_supply: Self::BigUint,
-        reward_token_reserve: FftTokenAmountPair<Self::BigUint>,
-        farm_attributes: FarmTokenAttributes<Self::BigUint>,
+        farming_token_amount: FftTokenAmountPair<Self::TypeManager>,
+        farming_reserve: BigUint,
+        farm_token_amount: GenericTokenAmountPair<Self::TypeManager>,
+        farm_supply: BigUint,
+        reward_token_reserve: FftTokenAmountPair<Self::TypeManager>,
+        farm_attributes: FarmTokenAttributes<Self::TypeManager>,
         created_with_merge: bool,
     ) {
         let epoch = self.blockchain().get_block_epoch();
@@ -105,13 +105,13 @@ pub trait EventsModule {
     fn emit_exit_farm_event(
         self,
         caller: Address,
-        farming_token_amount: FftTokenAmountPair<Self::BigUint>,
-        farming_reserve: Self::BigUint,
-        farm_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        farm_supply: Self::BigUint,
-        reward_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        reward_reserve: Self::BigUint,
-        farm_attributes: FarmTokenAttributes<Self::BigUint>,
+        farming_token_amount: FftTokenAmountPair<Self::TypeManager>,
+        farming_reserve: BigUint,
+        farm_token_amount: GenericTokenAmountPair<Self::TypeManager>,
+        farm_supply: BigUint,
+        reward_token_amount: GenericTokenAmountPair<Self::TypeManager>,
+        reward_reserve: BigUint,
+        farm_attributes: FarmTokenAttributes<Self::TypeManager>,
     ) {
         let epoch = self.blockchain().get_block_epoch();
         self.exit_farm_event(
@@ -138,13 +138,13 @@ pub trait EventsModule {
     fn emit_claim_rewards_event(
         self,
         caller: Address,
-        old_farm_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        new_farm_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        farm_supply: Self::BigUint,
-        reward_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        reward_reserve: Self::BigUint,
-        old_farm_attributes: FarmTokenAttributes<Self::BigUint>,
-        new_farm_attributes: FarmTokenAttributes<Self::BigUint>,
+        old_farm_token_amount: GenericTokenAmountPair<Self::TypeManager>,
+        new_farm_token_amount: GenericTokenAmountPair<Self::TypeManager>,
+        farm_supply: BigUint,
+        reward_token_amount: GenericTokenAmountPair<Self::TypeManager>,
+        reward_reserve: BigUint,
+        old_farm_attributes: FarmTokenAttributes<Self::TypeManager>,
+        new_farm_attributes: FarmTokenAttributes<Self::TypeManager>,
         created_with_merge: bool,
     ) {
         let epoch = self.blockchain().get_block_epoch();
@@ -173,13 +173,13 @@ pub trait EventsModule {
     fn emit_compound_rewards_event(
         self,
         caller: Address,
-        old_farm_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        new_farm_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        farm_supply: Self::BigUint,
-        reward_token_amount: GenericTokenAmountPair<Self::BigUint>,
-        reward_reserve: Self::BigUint,
-        old_farm_attributes: FarmTokenAttributes<Self::BigUint>,
-        new_farm_attributes: FarmTokenAttributes<Self::BigUint>,
+        old_farm_token_amount: GenericTokenAmountPair<Self::TypeManager>,
+        new_farm_token_amount: GenericTokenAmountPair<Self::TypeManager>,
+        farm_supply: BigUint,
+        reward_token_amount: GenericTokenAmountPair<Self::TypeManager>,
+        reward_reserve: BigUint,
+        old_farm_attributes: FarmTokenAttributes<Self::TypeManager>,
+        new_farm_attributes: FarmTokenAttributes<Self::TypeManager>,
         created_with_merge: bool,
     ) {
         let epoch = self.blockchain().get_block_epoch();
@@ -212,7 +212,7 @@ pub trait EventsModule {
         #[indexed] farming_token: TokenIdentifier,
         #[indexed] with_locked_rewards: bool,
         #[indexed] epoch: u64,
-        enter_farm_event: EnterFarmEvent<Self::BigUint>,
+        enter_farm_event: EnterFarmEvent<Self::TypeManager>,
     );
 
     #[event("exit_farm")]
@@ -222,7 +222,7 @@ pub trait EventsModule {
         #[indexed] farm_token: TokenIdentifier,
         #[indexed] with_locked_rewards: bool,
         #[indexed] epoch: u64,
-        exit_farm_event: ExitFarmEvent<Self::BigUint>,
+        exit_farm_event: ExitFarmEvent<Self::TypeManager>,
     );
 
     #[event("claim_rewards")]
@@ -232,7 +232,7 @@ pub trait EventsModule {
         #[indexed] farm_token: TokenIdentifier,
         #[indexed] with_locked_rewards: bool,
         #[indexed] epoch: u64,
-        claim_rewards_event: ClaimRewardsEvent<Self::BigUint>,
+        claim_rewards_event: ClaimRewardsEvent<Self::TypeManager>,
     );
 
     #[event("compound_rewards")]
@@ -242,6 +242,6 @@ pub trait EventsModule {
         #[indexed] farm_token: TokenIdentifier,
         #[indexed] with_locked_rewards: bool,
         #[indexed] epoch: u64,
-        compound_rewards_event: CompoundRewardsEvent<Self::BigUint>,
+        compound_rewards_event: CompoundRewardsEvent<Self::TypeManager>,
     );
 }

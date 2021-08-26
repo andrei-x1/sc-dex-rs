@@ -78,11 +78,11 @@ pub trait LockedAssetFactory:
     #[endpoint(createAndForward)]
     fn create_and_forward(
         &self,
-        amount: Self::BigUint,
+        amount: BigUint,
         address: Address,
         start_epoch: Epoch,
         #[var_args] opt_accept_funds_func: OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::TypeManager>> {
         let caller = self.blockchain().get_caller();
         require!(
             self.whitelisted_contracts().contains(&caller),
@@ -113,7 +113,7 @@ pub trait LockedAssetFactory:
     fn unlock_assets(
         &self,
         #[payment_token] token_id: TokenIdentifier,
-        #[payment_amount] amount: Self::BigUint,
+        #[payment_amount] amount: BigUint,
         #[payment_nonce] token_nonce: Nonce,
     ) -> SCResult<()> {
         let locked_token_id = self.locked_asset_token_id().get();
@@ -137,7 +137,7 @@ pub trait LockedAssetFactory:
         let mut output_locked_assets_token_amount = GenericTokenAmountPair {
             token_id: token_id.clone(),
             token_nonce: 0,
-            amount: 0u64.into(),
+            amount: self.types().big_uint_zero(),
         };
         let mut output_locked_asset_attributes = LockedAssetTokenAttributes {
             unlock_schedule: UnlockSchedule {
@@ -194,11 +194,11 @@ pub trait LockedAssetFactory:
 
     fn produce_tokens_and_send(
         &self,
-        amount: &Self::BigUint,
+        amount: &BigUint,
         attributes: &LockedAssetTokenAttributes,
         address: &Address,
         opt_accept_funds_func: &OptionalArg<BoxedBytes>,
-    ) -> SCResult<GenericTokenAmountPair<Self::BigUint>> {
+    ) -> SCResult<GenericTokenAmountPair<Self::TypeManager>> {
         let result = self.get_sft_nonce_for_unlock_schedule(&attributes.unlock_schedule);
         let sent_nonce = match result {
             Option::Some(cached_nonce) => {
@@ -214,9 +214,9 @@ pub trait LockedAssetFactory:
                 let do_cache_result = !attributes.is_merged;
 
                 let additional_amount_to_create = if do_cache_result {
-                    ADDITIONAL_AMOUNT_TO_CREATE.into()
+                    self.types().big_uint_from(ADDITIONAL_AMOUNT_TO_CREATE)
                 } else {
-                    0u64.into()
+                    self.types().big_uint_zero()
                 };
 
                 let new_nonce = self.create_and_send_locked_assets(
@@ -246,7 +246,7 @@ pub trait LockedAssetFactory:
         &self,
         token_display_name: BoxedBytes,
         token_ticker: BoxedBytes,
-        #[payment_amount] issue_cost: Self::BigUint,
+        #[payment_amount] issue_cost: BigUint,
     ) -> SCResult<AsyncCall<Self::SendApi>> {
         only_owner!(self, "Permission denied");
         require!(

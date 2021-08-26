@@ -17,10 +17,10 @@ pub struct UserLockedAssetKey {
 }
 
 #[derive(TopEncode, TopDecode, PartialEq, TypeAbi)]
-pub struct CommunityDistribution<BigUint: BigUintApi> {
-    pub total_amount: BigUint,
+pub struct CommunityDistribution<M: ManagedTypeApi> {
+    pub total_amount: BigUint<M>,
     pub spread_epoch: u64,
-    pub after_planning_amount: BigUint,
+    pub after_planning_amount: BigUint<M>,
 }
 
 #[elrond_wasm::contract]
@@ -63,11 +63,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     }
 
     #[endpoint(setCommunityDistribution)]
-    fn set_community_distribution(
-        &self,
-        total_amount: Self::BigUint,
-        spread_epoch: u64,
-    ) -> SCResult<()> {
+    fn set_community_distribution(&self, total_amount: BigUint, spread_epoch: u64) -> SCResult<()> {
         only_owner!(self, "Permission denied");
         self.require_global_op_ongoing()?;
         require!(total_amount > 0, "Zero amount");
@@ -97,7 +93,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     fn set_per_user_distributed_locked_assets(
         &self,
         spread_epoch: u64,
-        #[var_args] user_locked_assets: VarArgs<MultiArg2<Address, Self::BigUint>>,
+        #[var_args] user_locked_assets: VarArgs<MultiArg2<Address, BigUint>>,
     ) -> SCResult<()> {
         only_owner!(self, "Permission denied");
         self.require_global_op_ongoing()?;
@@ -108,12 +104,12 @@ pub trait Distribution: global_op::GlobalOperationModule {
     }
 
     #[endpoint(claimLockedAssets)]
-    fn claim_locked_assets(&self) -> SCResult<Self::BigUint> {
+    fn claim_locked_assets(&self) -> SCResult<BigUint> {
         self.require_global_op_not_ongoing()?;
         self.require_community_distribution_list_not_empty()?;
 
         let caller = self.blockchain().get_caller();
-        let mut cummulated_amount = 0u64.into();
+        let mut cummulated_amount = self.types().big_uint_zero();
 
         let locked_assets = self.calculate_user_locked_assets(&caller, true);
         if locked_assets.is_empty() {
@@ -165,12 +161,12 @@ pub trait Distribution: global_op::GlobalOperationModule {
     }
 
     #[view(calculateLockedAssets)]
-    fn calculate_locked_assets_view(&self, address: Address) -> SCResult<Self::BigUint> {
+    fn calculate_locked_assets_view(&self, address: Address) -> SCResult<BigUint> {
         self.require_global_op_not_ongoing()?;
         self.require_community_distribution_list_not_empty()?;
         let locked_assets = self.calculate_user_locked_assets(&address, false);
 
-        let mut cummulated_amount = 0u64.into();
+        let mut cummulated_amount = self.types().big_uint_zero();
         for (amount, _) in locked_assets.iter() {
             cummulated_amount += amount;
         }
@@ -178,7 +174,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     }
 
     #[view(getLastCommunityDistributionAmountAndEpoch)]
-    fn get_last_community_distrib_amount_and_epoch(&self) -> MultiResult2<Self::BigUint, u64> {
+    fn get_last_community_distrib_amount_and_epoch(&self) -> MultiResult2<BigUint, u64> {
         self.community_distribution_list()
             .front()
             .map(|last_community_distrib| {
@@ -187,14 +183,14 @@ pub trait Distribution: global_op::GlobalOperationModule {
                     last_community_distrib.spread_epoch,
                 )
             })
-            .unwrap_or((0u64.into(), 0u64))
+            .unwrap_or((self.types().big_uint_zero(), 0u64))
             .into()
     }
 
     fn add_all_user_assets_to_map(
         &self,
         spread_epoch: u64,
-        user_assets: VarArgs<MultiArg2<Address, Self::BigUint>>,
+        user_assets: VarArgs<MultiArg2<Address, BigUint>>,
     ) -> SCResult<()> {
         let mut last_community_distrib = self.community_distribution_list().front().unwrap();
         require!(
@@ -220,7 +216,7 @@ pub trait Distribution: global_op::GlobalOperationModule {
     fn add_user_locked_asset_entry(
         &self,
         caller: Address,
-        asset_amount: Self::BigUint,
+        asset_amount: BigUint,
         spread_epoch: u64,
     ) -> SCResult<()> {
         let key = UserLockedAssetKey {
@@ -239,9 +235,9 @@ pub trait Distribution: global_op::GlobalOperationModule {
         &self,
         address: &Address,
         delete_after_visit: bool,
-    ) -> Vec<(Self::BigUint, Epoch)> {
+    ) -> Vec<(BigUint, Epoch)> {
         let current_epoch = self.blockchain().get_block_epoch();
-        let mut locked_assets = Vec::<(Self::BigUint, Epoch)>::new();
+        let mut locked_assets = Vec::<(BigUint, Epoch)>::new();
 
         for community_distrib in self
             .community_distribution_list()
@@ -316,12 +312,10 @@ pub trait Distribution: global_op::GlobalOperationModule {
     #[storage_mapper("community_distribution_list")]
     fn community_distribution_list(
         &self,
-    ) -> LinkedListMapper<Self::Storage, CommunityDistribution<Self::BigUint>>;
+    ) -> LinkedListMapper<Self::Storage, CommunityDistribution<Self::TypeManager>>;
 
     #[storage_mapper("user_locked_asset_map")]
-    fn user_locked_asset_map(
-        &self,
-    ) -> SafeMapMapper<Self::Storage, UserLockedAssetKey, Self::BigUint>;
+    fn user_locked_asset_map(&self) -> SafeMapMapper<Self::Storage, UserLockedAssetKey, BigUint>;
 
     #[storage_mapper("locked_asset_factory_address")]
     fn locked_asset_factory_address(&self) -> SingleValueMapper<Self::Storage, Address>;
